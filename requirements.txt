@@ -1,0 +1,9 @@
+opencv-python
+matplotlib 
+pandas
+scikit-learn
+seaborn
+gradio
+tensorflow
+Flask
+torchinfo

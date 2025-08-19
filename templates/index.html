@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNIST Digit Recognition</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        #canvas {
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            cursor: crosshair;
+            background-color: white;
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        #clearBtn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a6f);
+        }
+
+        .prediction-area {
+            margin-top: 20px;
+            padding: 15px;
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            border-radius: 15px;
+            color: white;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .prediction-result {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        #preview img {
+            margin-top: 10px;
+            max-width: 200px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Side -->
+        <div class="col-md-8">
+            <h1>🔢 MNIST Digit Recognition</h1>
+            <div class="drawing-area">
+                <canvas id="canvas" width="400" height="400"></canvas>
+            </div>
+            <div class="controls">
+                <button id="predictBtn">🎯 Predict Digit</button>
+                <button id="clearBtn">🗑️ Clear Canvas</button>
+            </div>
+            <div class="prediction-area" id="predictionArea">
+                ✍️ Draw a digit and click "Predict Digit"
+            </div>
+        </div>
+
+        <!-- Right Side Preview -->
+        <div class="col-md-4">
+            <h2>🖼️ Preview</h2>
+            <div id="preview">
+                <p>No image yet</p>
+            </div>
+        </div> 
+    </div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const predictBtn = document.getElementById('predictBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const predictionArea = document.getElementById('predictionArea');
+    const previewDiv = document.getElementById('preview');
+
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    // Setup canvas
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 15;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Drawing functions
+    function startDrawing(e) {
+        isDrawing = true;
+        [lastX, lastY] = getMousePos(e);
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        const [currentX, currentY] = getMousePos(e);
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(currentX, currentY);
+        ctx.stroke();
+        [lastX, lastY] = [currentX, currentY];
+    }
+
+    function stopDrawing() {
+        isDrawing = false;
+    }
+
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        if (e.touches && e.touches.length > 0) {
+            return [
+                (e.touches[0].clientX - rect.left) * scaleX,
+                (e.touches[0].clientY - rect.top) * scaleY
+            ];
+        } else {
+            return [
+                (e.clientX - rect.left) * scaleX,
+                (e.clientY - rect.top) * scaleY
+            ];
+        }
+    }
+
+    // Mouse events
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    // Touch events
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        startDrawing(e);
+    });
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        draw(e);
+    });
+    canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        stopDrawing();
+    });
+
+    // Clear button
+    clearBtn.addEventListener('click', () => {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        predictionArea.innerHTML = '✍️ Draw a digit and click "Predict Digit"';
+        previewDiv.innerHTML = '<p>No image yet</p>';
+    });
+
+    // Predict button
+    // Predict digit
+predictBtn.addEventListener('click', async () => {
+    let dataURL = canvas.toDataURL("image/png");
+    let blob = await (await fetch(dataURL)).blob();
+
+    let formData = new FormData();
+    formData.append("file", blob, "digit.png");
+
+    // 1. Prediction API
+    let response = await fetch("http://127.0.0.1:5000/predict", {
+        method: "POST",
+        body: formData
+    });
+
+    let result = await response.json();
+    console.log(result)
+    
+    // 2. Preview API
+    let previewResponse = await fetch("http://127.0.0.1:5000/preview", {
+        method: "POST",
+        body: formData
+    });
+
+    let previewBlob = await previewResponse.blob();
+    let previewURL = URL.createObjectURL(previewBlob);
+
+
+    predictionArea.innerHTML = `
+        <div class="prediction-result">
+            🎉 Predicted Digit: <strong>${result.prediction}</strong>
+        </div>
+        <div class="preview-area">
+            <p>🖼️ Processed Image Preview:</p>
+            <img src="${previewURL}" width="100" height="100"/>
+        </div>
+    `;
+});
+
+</script>
+
+</body>
+</html>

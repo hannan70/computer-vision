@@ -1,0 +1,6 @@
+venv
+resource
+dataset
+model
+data
+alexnet_custom_dataset_model.h5
