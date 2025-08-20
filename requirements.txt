@@ -7,3 +7,6 @@ gradio
 tensorflow
 Flask
 torchinfo
+albumentationsx  
+ultralytics
+streamlit
