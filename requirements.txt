@@ -10,3 +10,4 @@ torchinfo
 albumentationsx  
 ultralytics
 streamlit
+torchsummary
